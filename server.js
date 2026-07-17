@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const bcrypt = require('bcrypt'); // 암호화 라이브러리 추가
+const bcrypt = require('bcryptjs');
 const app = express();
 const PORT = 3000;
 
@@ -9,25 +9,28 @@ app.use(express.json());
 
 const ATTENDANCE_FILE = path.join(__dirname, 'attendance.json');
 const CONFIG_FILE = path.join(__dirname, 'company_config.json');
-const EMPLOYEE_FILE = path.join(__dirname, 'employees.json'); // 사원 DB 파일 분리
+const EMPLOYEE_FILE = path.join(__dirname, 'employees.json');
 
-// 1. 초기 기본 설정값 로드
+// 1. 인사 마스터 초기 기본 설정값 세팅
 let companyConfig = {
-    prefix: "ABC-", nextSequence: 1,
+    prefix: "ABC-",
+    nextSequence: 1,
     teams: ["인사팀", "개발팀", "영업팀"], 
-    positions: ["사원", "대리", "과장", "팀장", "부장", "대표이사"]
+    positions: ["사원", "대리", "과장", "팀장", "부장", "대표이사"],
+    companyAddress: "서울특별시 마포구 마포대로 1", 
+    latitude: 37.5385,                            
+    longitude: 126.9458                           
 };
-if (fs.existsSync(CONFIG_FILE)) companyConfig = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
 
+if (fs.existsSync(CONFIG_FILE)) {
+    companyConfig = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+}
 function saveConfig() { fs.writeFileSync(CONFIG_FILE, JSON.stringify(companyConfig, null, 2), 'utf8'); }
 
-// 2. 사원 데이터베이스 파일 제어 함수 (보안 강화)
+// 2. 사원 암호화 DB 입출력 제어
 function loadEmployeeDB() {
     if (!fs.existsSync(EMPLOYEE_FILE)) {
-        // 파일이 없을 때 최초 1회만 마스터 계정 생성 (비밀번호도 해싱하여 저장!)
-        const saltRounds = 10;
-        const hashedPassword = bcrypt.hashSync("admin5678!", saltRounds); // 초기 비밀번호 복잡하게 변경
-        
+        const hashedPassword = bcrypt.hashSync("admin5678!", 10);
         const initialDB = {
             "ADMIN-01": { name: "인사팀장", password: hashedPassword, team: "인사팀", position: "팀장", role: "admin" }
         };
@@ -36,51 +39,54 @@ function loadEmployeeDB() {
     }
     return JSON.parse(fs.readFileSync(EMPLOYEE_FILE, 'utf8') || '{}');
 }
+function saveEmployeeDB(db) { fs.writeFileSync(EMPLOYEE_FILE, JSON.stringify(db, null, 2), 'utf8'); }
+function loadAttendance() { return fs.existsSync(ATTENDANCE_FILE) ? JSON.parse(fs.readFileSync(ATTENDANCE_FILE, 'utf8') || '[]') : []; }
+function saveAttendance(data) { fs.writeFileSync(ATTENDANCE_FILE, JSON.stringify(data, null, 2), 'utf8'); }
 
-function saveEmployeeDB(db) {
-    fs.writeFileSync(EMPLOYEE_FILE, JSON.stringify(db, null, 2), 'utf8');
-}
-
-function loadAttendance() {
-    if (!fs.existsSync(ATTENDANCE_FILE)) return [];
-    return JSON.parse(fs.readFileSync(ATTENDANCE_FILE, 'utf8') || '[]');
-}
-
-function saveAttendance(data) {
-    fs.writeFileSync(ATTENDANCE_FILE, JSON.stringify(data, null, 2), 'utf8');
+// 3. 두 좌표 사이의 물리적 거리 계산 함수
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; 
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; 
 }
 
 app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
 
-// [API 1] 전체 설정 정보 조회
+// [API] 전체 설정 정보 조회
 app.post('/api/hr/config', (req, res) => {
-    const { requesterId } = req.body;
     const db = loadEmployeeDB();
+    const { requesterId } = req.body;
     if (!db[requesterId] || db[requesterId].role !== 'admin') return res.status(403).json({ message: '권한 없음' });
     res.json(companyConfig);
 });
 
-// [API 2] 전체 설정 정보 업데이트
+// [API] 마스터 설정 및 주소 업데이트
 app.post('/api/hr/config/update', (req, res) => {
-    const { requesterId, prefix, teams, positions } = req.body;
     const db = loadEmployeeDB();
+    const { requesterId, prefix, teams, positions, companyAddress, latitude, longitude } = req.body;
     if (!db[requesterId] || db[requesterId].role !== 'admin') return res.status(403).json({ message: '권한 없음' });
     
     if (prefix) companyConfig.prefix = prefix.trim();
     if (teams) companyConfig.teams = teams;
     if (positions) companyConfig.positions = positions;
+    if (companyAddress) companyConfig.companyAddress = companyAddress.trim();
+    if (latitude) companyConfig.latitude = parseFloat(latitude);
+    if (longitude) companyConfig.longitude = parseFloat(longitude);
     
     saveConfig();
-    res.json({ message: '설정이 저장되었습니다.', config: companyConfig });
+    res.json({ message: '인사 설정 및 회사 주소가 변경되었습니다.', config: companyConfig });
 });
 
-// [API 3] 신규 입사자 등록 (비밀번호 암호화 필수 적용)
+// [API] 신규 입사자 정보 생성
 app.post('/api/hr/register', (req, res) => {
     const { requesterId, name, password, team, position } = req.body;
     let db = loadEmployeeDB();
-    
     if (!db[requesterId] || db[requesterId].role !== 'admin') return res.status(403).json({ message: '권한 없음' });
-    if (!name || !password) return res.status(400).json({ message: '정보 누락' });
 
     const seqStr = String(companyConfig.nextSequence).padStart(3, '0');
     const autoGeneratedId = `${companyConfig.prefix}${seqStr}`;
@@ -89,10 +95,7 @@ app.post('/api/hr/register', (req, res) => {
     if (position === '대표이사') userRole = 'ceo';
     else if (position === '팀장' || position === '부장') userRole = 'manager';
 
-    // 안전한 단방향 해시 암호화 수행 후 저장
-    const saltRounds = 10;
-    const hashedPassword = bcrypt.hashSync(password, saltRounds);
-
+    const hashedPassword = bcrypt.hashSync(password, 10);
     db[autoGeneratedId] = { name, password: hashedPassword, team, position, role: userRole };
     saveEmployeeDB(db);
     
@@ -102,61 +105,57 @@ app.post('/api/hr/register', (req, res) => {
     res.status(200).json({ message: '등록 성공', generatedId: autoGeneratedId });
 });
 
-// [API 4] 출근 체크 및 로그인 (암호화 비교 검증)
+// [API] 실시간 위치 측정 및 출근 처리
 app.post('/api/attendance/check-in', (req, res) => {
-    const { employeeId, password } = req.body;
+    const { employeeId, password, lat, lon } = req.body;
     const db = loadEmployeeDB();
     
-    if (!db[employeeId]) return res.status(401).json({ message: '사번 또는 비밀번호가 올바르지 않습니다.' });
+    if (!db[employeeId] || !bcrypt.compareSync(password, db[employeeId].password)) {
+        return res.status(401).json({ message: '사번 또는 비밀번호가 올바르지 않습니다.' });
+    }
 
-    // bcrypt.compareSync 를 사용해 입력값과 해시화된 비밀번호 비교 검증
-    const isPasswordMatch = bcrypt.compareSync(password, db[employeeId].password);
-    if (!isPasswordMatch) return res.status(401).json({ message: '사번 또는 비밀번호가 올바르지 않습니다.' });
+    if (lat && lon) {
+        const distance = getDistance(companyConfig.latitude, companyConfig.longitude, lat, lon);
+        if (distance > 200) {
+            return res.status(400).json({ message: `회사 근처에서만 출근이 가능합니다. (현재 회사와 ${Math.round(distance)}m 거리)` });
+        }
+    }
 
     const empInfo = db[employeeId];
-    const now = new Date();
-    const today = now.toLocaleDateString('ko-KR');
-    
+    const now = new Date(); const today = now.toLocaleDateString('ko-KR');
     let attendanceLog = loadAttendance();
+    
     const alreadyIn = attendanceLog.find(log => log.employeeId === employeeId && log.date === today);
-    if (alreadyIn) return res.status(200).json({ message: '이미 출근 상태입니다.', data: alreadyIn, role: empInfo.role });
+    if (alreadyIn) return res.status(200).json({ message: '이미 출근 완료된 상태입니다.', data: alreadyIn, role: empInfo.role });
     
     const log = {
         employeeId, name: empInfo.name, team: empInfo.team, position: empInfo.position,
         date: today, checkInTime: now.toLocaleTimeString('ko-KR'), checkOutTime: null
     };
     
-    attendanceLog.push(log);
-    saveAttendance(attendanceLog);
+    attendanceLog.push(log); saveAttendance(attendanceLog);
     res.status(200).json({ data: log, role: empInfo.role });
 });
 
-// [API 5] 퇴근
+// [API] 퇴근 정산
 app.post('/api/attendance/check-out', (req, res) => {
-    const { employeeId, password } = req.body;
-    const db = loadEmployeeDB();
-    
-    if (!db[employeeId] || !bcrypt.compareSync(password, db[employeeId].password)) {
-        return res.status(401).json({ message: '인증 실패' });
-    }
+    const { employeeId, password } = req.body; const db = loadEmployeeDB();
+    if (!db[employeeId] || !bcrypt.compareSync(password, db[employeeId].password)) return res.status(401).json({ message: '인증 실패' });
     
     const now = new Date(); const today = now.toLocaleDateString('ko-KR');
     let attendanceLog = loadAttendance();
-    
     const userLog = attendanceLog.find(log => log.employeeId === employeeId && log.date === today && log.checkOutTime === null);
-    if (!userLog) return res.status(400).json({ message: '출근 기록이 없거나 이미 퇴근 처리되었습니다.' });
+    if (!userLog) return res.status(400).json({ message: '금일 출근 기록이 없거나 이미 퇴근하셨습니다.' });
     
-    userLog.checkOutTime = now.toLocaleTimeString('ko-KR');
-    saveAttendance(attendanceLog);
+    userLog.checkOutTime = now.toLocaleTimeString('ko-KR'); saveAttendance(attendanceLog);
     res.status(200).json({ data: userLog });
 });
 
-// [API 6] 전사 근태 기록 조회
+// [API] 전사 근태 종합 목록 로드
 app.post('/api/attendance/list', (req, res) => {
-    const { requesterId } = req.body;
-    const db = loadEmployeeDB();
+    const { requesterId } = req.body; const db = loadEmployeeDB();
     if (!db[requesterId] || db[requesterId].role !== 'admin') return res.status(403).json({ message: '권한 없음' });
     res.json({ logs: loadAttendance() });
 });
 
-app.listen(PORT, () => { console.log(`ERP 서버가 http://localhost:${PORT} 에서 실행 중입니다.`); });
+app.listen(PORT, () => { console.log(`ERP 서버가 http://localhost:${PORT} 에서 실행 중
