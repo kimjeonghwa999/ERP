@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>사내 ERP - 마스터 관리자 시스템</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 30px; background-color: #f5f7fb; color: #333; }
+        .container { max-width: 650px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        input, select { padding: 12px; font-size: 15px; width: 90%; max-width: 380px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 6px; }
+        button { padding: 12px 20px; font-size: 15px; margin: 5px; cursor: pointer; border-radius: 6px; border: none; font-weight: bold; }
+        .in { background-color: #10b981; color: white; }
+        .out { background-color: #ef4444; color: white; }
+        .admin-btn { background-color: #3b82f6; color: white; width: 95%; max-width: 400px; margin-top: 5px; }
+        .admin-section { display: none; margin-top: 40px; padding-top: 30px; border-top: 2px dashed #e2e8f0; text-align: left; }
+        .admin-section h2 { color: #1e3a8a; font-size: 20px; border-left: 4px solid #3b82f6; padding-left: 10px; }
+        .rule-box { background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 25px; }
+        .chip { display: inline-block; background: #e2e8f0; padding: 6px 12px; margin: 4px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+        .chip span { margin-left: 8px; color: #ef4444; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; font-size: 14px; }
+        th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: center; }
+        th { background-color: #f8fafc; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="container" style="text-align: center;">
+        <h1>사내 ERP 시스템</h1>
+        <input type="text" id="empId" placeholder="사원번호(아이디)"><br>
+        <input type="password" id="empPwd" placeholder="비밀번호"><br>
+        
+        <button class="in" onclick="checkIn()">출근하기</button>
+        <button class="out" onclick="checkOut()">퇴근하기</button>
+        
+        <div id="log" style="margin-top:20px; font-weight:bold; display:none; padding:15px; border-radius:6px;"></div>
+
+        <!-- ================= 인사팀 커스터마이징 메인 시스템 ================= -->
+        <div id="adminPanel" class="admin-section">
+            <h2>인사팀 마스터 커스터마이징 설정</h2>
+            
+            <!-- 1. 부서 및 직급 커스텀 제어 칩 박스 -->
+            <div class="rule-box">
+                <h3>🏢 사내 부서(팀) 관리</h3>
+                <div id="teamChips"></div>
+                <input type="text" id="teamInput" placeholder="추가할 팀명 입력 (예: 마케팅팀)" style="width:60%; margin: 10px 0 0 0 ; padding:8px;">
+                <button style="background:#475569; color:white; padding:8px 12px; font-size:13px;" onclick="addItem('teams', 'teamInput')">부서 추가</button>
+
+                <h3>🎖️ 사내 직급 체계 관리</h3>
+                <div id="positionChips"></div>
+                <input type="text" id="positionInput" placeholder="추가할 직급 입력 (예: 이사)" style="width:60%; margin: 10px 0 0 0 ; padding:8px;">
+                <button style="background:#475569; color:white; padding:8px 12px; font-size:13px;" onclick="addItem('positions', 'positionInput')">직급 추가</button>
+
+                <h3>⚙️ 사번 일련번호 규칙 변경</h3>
+                <p>현재 포맷 패턴: <strong id="currentPrefix" style="color:#3b82f6;">로딩중...</strong></p>
+                <input type="text" id="prefixInput" placeholder="새 접두사 패턴 (예: KOR-)" style="width:60%; margin:0; padding:8px;">
+                <button style="background:#3b82f6; color:white; padding:8px 12px; font-size:13px;" onclick="updatePrefix()">패턴 수정</button>
+            </div>
+            
+            <!-- 2. 신규 입사자 등록 양식 -->
+            <h3> 입사 신청자 정보 등록</h3>
+            <input type="text" id="newName" placeholder="신규 사원 성명" style="width:100%;"><br>
+            <input type="password" id="newPwd" placeholder="지정할 초기 패스워드" style="width:100%;"><br>
+            
+            <label style="font-weight:bold; display:block; text-align:left; margin-bottom:5px;">소속 부서 선택</label>
+            <select id="newTeam" style="width:106%;"></select><br>
+            
+            <label style="font-weight:bold; display:block; text-align:left; margin-bottom:5px;">배정 직급 선택</label>
+            <select id="newPosition" style="width:106%;"></select><br>
+            
+            <button class="admin-btn" onclick="registerEmployee()">사원 데이터 자동 발급 및 입사 완료</button>
+
+            <h3> 전사원 근태 모니터링</h3>
+            <table>
+                <thead>
+                    <tr><th>사번</th><th>이름</th><th>소속</th><th>직급</th><th>출근시간</th><th>퇴근시간</th></tr>
+                </thead>
+                <tbody id="attendanceTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let currentUserId = "";
+        let globalConfig = {};
+
+        async function checkIn() {
+            const employeeId = document.getElementById('empId').value;
+            const password = document.getElementById('empPwd').value;
+            if(!employeeId || !password) return alert('정보를 입력해주세요.');
+
+            const res = await fetch('/api/attendance/check-in', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employeeId, password })
+            });
+            const result = await res.json();
+            const logDiv = document.getElementById('log');
+            logDiv.style.display = 'block';
+            
+            if(res.status !== 200) {
+                logDiv.style.backgroundColor = '#ffebee'; logDiv.innerText = result.message;
+            } else {
+                currentUserId = employeeId;
+                logDiv.style.backgroundColor = '#e8f5e9'; logDiv.innerText = `${result.data.name}님 반가워요. 출근 완료!`;
+                
+                if(result.role === 'admin') {
+                    document.getElementById('adminPanel').style.display = 'block';
+                    loadConfig(); loadAdminData();
+                }
+            }
+        }
+
+        async function checkOut() {
+            const employeeId = document.getElementById('empId').value;
+            const password = document.getElementById('empPwd').value;
+            const res = await fetch('/api/attendance/check-out', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employeeId, password })
+            });
+            const result = await res.json();
+            alert(result.message || "퇴근 완료");
+        }
+
+        // 전체 인사 설정 데이터 렌더링
+        async function loadConfig() {
+            const res = await fetch('/api/hr/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ requesterId: currentUserId })
+            });
+            globalConfig = await res.json();
+            
+            document.getElementById('currentPrefix').innerText = `${globalConfig.prefix}00${globalConfig.nextSequence}`;
+            
+            // 부서 칩 및 셀렉트 박스 동적 생성
+            const teamChips = document.getElementById('teamChips');
+            const newTeamSelect = document.getElementById('newTeam');
+            teamChips.innerHTML = ""; newTeamSelect.innerHTML = "";
+            globalConfig.teams.forEach((t, idx) => {
+                teamChips.innerHTML += `<div class="chip">${t}<span onclick="removeItem('teams', ${idx})">×</span></div>`;
+                newTeamSelect.innerHTML += `<option value="${t}">${t}</option>`;
+            });
+
+            // 직급 칩 및 셀렉트 박스 동적 생성
+            const posChips = document.getElementById('positionChips');
+            const newPosSelect = document.getElementById('newPosition');
+            posChips.innerHTML = ""; newPosSelect.innerHTML = "";
+            globalConfig.positions.forEach((p, idx) => {
+                posChips.innerHTML += `<div class="chip">${p}<span onclick="removeItem('positions', ${idx})">×</span></div>`;
+                newPosSelect.innerHTML += `<option value="${p}">${p}</option>`;
+            });
+        }
+
+        // 마스터 아이템 실시간 추가 기능
+        async function addItem(key, inputId) {
+            const value = document.getElementById(inputId).value.trim();
+            if(!value) return;
+            
+            globalConfig[key].push(value);
+            await sendConfigUpdate();
+            document.getElementById(inputId).value = "";
+        }
+
+        // 마스터 아이템 실시간 삭제 기능
+        async function removeItem(key, index) {
+            globalConfig[key].splice(index, 1);
+            await sendConfigUpdate();
+        }
+
+        async function updatePrefix() {
+            globalConfig.prefix = document.getElementById('prefixInput').value.trim();
+            await sendConfigUpdate();
+            document.getElementById('prefixInput').value = "";
+        }
+
+        // 서버에 변경된 인사팀 마스터 옵션 전송
+        async function sendConfigUpdate() {
+            await fetch('/api/hr/config/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ requesterId: currentUserId, ...globalConfig })
+            });
+            loadConfig();
+        }
+
+        async function registerEmployee() {
+            const name = document.getElementById('newName').value;
+            const password = document.getElementById('newPwd').value;
+            const team = document.getElementById('newTeam').value;
+            const position = document.getElementById('newPosition').value;
+
+            const res = await fetch('/api/hr/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ requesterId: currentUserId, name, password, team, position })
+            });
+            const result = await res.json();
+            if(res.status === 200) {
+                alert(`입사 성공! 사번: [ ${result.generatedId} ]`);
+document.getElementById('newName').value = ""; document.getElementById('newPwd').value = "";loadConfig(); loadAdminData();}}async function loadAdminData() {const res = await fetch('/api/attendance/list', {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({ requesterId: currentUserId })});const data = await res.json();const tbody = document.getElementById('attendanceTableBody'); tbody.innerHTML = "";if(data.logs) {data.logs.forEach(log => {tbody.innerHTML += <tr><td>${log.employeeId}</td><td>${log.name}</td><td>${log.team}</td><td>${log.position}</td><td>${log.checkInTime}</td><td>${log.checkOutTime || '재직중'}</td></tr>;});}}
