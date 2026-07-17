@@ -1,0 +1,9 @@
+{
+  "ADMIN-01": {
+    "name": "인사팀장",
+    "password": "$2b$10$AvvmNeFdYSDErjVkXC3if.6IXN/RAoUgkehj0lHE7H0nEmFwJL1g.",
+    "team": "인사팀",
+    "position": "팀장",
+    "role": "admin"
+  }
+}
