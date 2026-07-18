@@ -4,18 +4,16 @@
 > 사원의 실제 위치 기반 출퇴근 검증 기능과 인사담당자 전용 관리자(HR) 보안 격리 페이지를 완벽하게 분리하여 구현했습니다.
 
 <br>
-
 ## 🛠 Tech Stacks (기술 스택)
 
-<img src="https://shields.io" alt="JavaScript" />&nbsp;
-<img src="https://shields.io" alt="NodeJS" />&nbsp;
-<img src="https://shields.io" alt="Express.js" />&nbsp;
-<img src="https://shields.io" alt="HTML5" />&nbsp;
-<img src="https://shields.io" alt="CSS3" />&nbsp;
-<img src="https://shields.io" alt="Git" />
+| 분류 | 사용 기술 및 라이브러리 | 상세 내용 |
+| :--- | :--- | :--- |
+| **Backend** | `Node.js`, `Express.js` | RESTful API 라우팅 설계, JSON 파일 기반 데이터 입출력 처리 |
+| **Frontend** | `JavaScript (ES6+)`, `HTML5`, `CSS3` | Geolocation 위치 API 연동, 모바일 반응형 웹 디자인 구현 |
+| **Security** | `Bcryptjs` | 사원 패스워드 솔팅(Salting) 기반 단방향 해시 암호화 검증 |
+| **DevOps** | `Git`, `GitHub` | 버전 관리 및 협업 인프라 구축, 가상 개발 환경(Codespaces) 운용 |
 
 <br>
-
 ## ✨ Key Features (핵심 기능)
 
 ### 📱 1. 일반 사원용 모바일 최적화 근태 컴포넌트 (`/`)
