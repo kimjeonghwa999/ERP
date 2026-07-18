@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>사내 ERP - 관리자 시스템</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+<div class="admin-container">
+    <h1>💼 ERP 관리자 모드</h1>
+    <p style="color: #64748b; margin-bottom: 25px;">회사 정보 설정 및 인사 사원 관리 통합 페이지입니다.</p>
+
+    <!-- 1. 관리자 인증 -->
+    <div class="auth-box">
+        <h2>🔐 관리자 인증</h2>
+        <label>관리자 사번</label>
+        <input type="text" id="reqId" value="ADMIN-01">
+        <label>관리자 비밀번호</label>
+        <input type="password" id="reqPwd" value="admin5678!">
+    </div>
+
+    <!-- 2. 회사 설정 변경 -->
+    <div class="section">
+        <h2>📍 회사 위치 및 반경 설정</h2>
+        <label>회사 주소</label>
+        <input type="text" id="companyAddress">
+        <label>회사 위도 (Latitude)</label>
+        <input type="number" step="any" id="latitude">
+        <label>회사 경도 (Longitude)</label>
+        <input type="number" step="any" id="longitude">
+        <label>출퇴근 허용 반경 (미터)</label>
+        <input type="number" id="limitDistance">
+        <button onclick="updateCompanyConfig()">회사 설정 저장</button>
+    </div>
+
+    <!-- 3. [신규] 사원 등록 영역 -->
+    <div class="section">
+        <h2>👤 신규 사원 등록 (회원가입)</h2>
+        <label>사원 이름</label>
+        <input type="text" id="newEmpName" placeholder="홍길동">
+        <label>초기 비밀번호</label>
+        <input type="password" id="newEmpPwd" placeholder="비밀번호 설정">
+        <label>소속 부서</label>
+        <input type="text" id="newEmpTeam" placeholder="개발팀 / 인사팀 / 영업팀">
+        <label>직급</label>
+        <input type="text" id="newEmpPosition" placeholder="사원 / 대리 / 과장 / 팀장">
+        <label>입사일</label>
+        <input type="date" id="newEmpJoinDate">
+        <button style="background-color: #10b981;" onclick="registerEmployee()">신규 사원 발령 및 등록</button>
+    </div>
+
+    <!-- 4. [신규] 사원 목록 조회 -->
+    <div class="section">
+        <h2>📋 전사원 인사 명부 및 연차 현황</h2>
+        <button style="background-color: #64748b; margin-bottom:15px;" onclick="loadEmployeeList()">인사 명부 실시간 새로고침</button>
+        <div id="employeeListArea" style="background:#f1f5f9; padding:15px; border-radius:8px; font-size:14px; text-align:left; line-height:1.6;">
+            조회된 사원 명부가 없습니다. 위의 버튼을 눌러주세요.
+        </div>
+    </div>
+</div>
+<script src="/admin/js/admin.js"></script>
+</body>
+</html>

@@ -2,16 +2,10 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <!-- 1. [필수] 스마트폰 화면 크기에 맞춰 가로 폭을 자동으로 조절해 주는 태그 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>사내 ERP - 출퇴근 체크</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 30px; background-color: #f5f7fb; display: flex; justify-content: center; align-items: center; min-height: 80vh; }
-        .container { width: 100%; max-width: 450px; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; }
-        input { padding: 14px; font-size: 15px; width: 90%; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; }
-        button { padding: 14px 24px; font-size: 16px; margin: 5px; cursor: pointer; border-radius: 8px; border: none; font-weight: bold; width: 45%; }
-        .in { background-color: #10b981; color: white; }
-        .out { background-color: #ef4444; color: white; }
-        #log { margin-top: 20px; font-weight: bold; padding: 15px; border-radius: 6px; display: none; }
-    </style>
+    <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
     <div class="container">
@@ -23,34 +17,7 @@
         <button class="out" onclick="checkOut()">퇴근하기</button>
         <div id="log"></div>
     </div>
-    <script>
-        function getCoordinates() {
-            return new Promise((resolve) => {
-                if (!navigator.geolocation) return resolve({ lat: null, lon: null });
-                navigator.geolocation.getCurrentPosition((p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }), () => resolve({ lat: null, lon: null }));
-            });
-        }
-        async function checkIn() {
-            const employeeId = document.getElementById('empId').value.trim();
-            const password = document.getElementById('empPwd').value.trim();
-            if(!employeeId || !password) return alert('정보를 입력해주세요.');
-            const { lat, lon } = await getCoordinates();
-            const res = await fetch('/api/attendance/check-in', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ employeeId, password, lat, lon }) });
-            const result = await res.json();
-            const logDiv = document.getElementById('log'); logDiv.style.display = 'block';
-            if(res.status !== 200) { logDiv.style.backgroundColor = '#ffebee'; logDiv.style.color = '#c62828'; logDiv.innerText = result.message; }
-            else { logDiv.style.backgroundColor = '#e8f5e9'; logDiv.style.color = '#2e7d32'; logDiv.innerText = `${result.data.name}님, 출근 완료!`; }
-        }
-        async function checkOut() {
-            const employeeId = document.getElementById('empId').value.trim();
-            const password = document.getElementById('empPwd').value.trim();
-            if(!employeeId || !password) return alert('정보를 입력해주세요.');
-            const res = await fetch('/api/attendance/check-out', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ employeeId, password }) });
-            const result = await res.json();
-            const logDiv = document.getElementById('log'); logDiv.style.display = 'block';
-            if(res.status !== 200) { logDiv.style.backgroundColor = '#ffebee'; logDiv.style.color = '#c62828'; logDiv.innerText = result.message; }
-            else { logDiv.style.backgroundColor = '#ffebee'; logDiv.style.color = '#c62828'; logDiv.innerText = `${result.data.name}님, 퇴근 완료!`; }
-        }
-    </script>
+    <!-- 외부 JS 연결 -->
+    <script src="/js/main.js"></script>
 </body>
 </html>
