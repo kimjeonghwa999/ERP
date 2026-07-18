@@ -7,12 +7,12 @@
 
 ## 🛠 Tech Stacks (기술 스택)
 
-![JavaScript](https://shields.io)
-![NodeJS](https://shields.io)
-![Express.js](https://shields.io)
-![HTML5](https://shields.io)
-![CSS3](https://shields.io)
-![Git](https://shields.io)
+<img src="https://shields.io" alt="JavaScript" />&nbsp;
+<img src="https://shields.io" alt="NodeJS" />&nbsp;
+<img src="https://shields.io" alt="Express.js" />&nbsp;
+<img src="https://shields.io" alt="HTML5" />&nbsp;
+<img src="https://shields.io" alt="CSS3" />&nbsp;
+<img src="https://shields.io" alt="Git" />
 
 <br>
 
