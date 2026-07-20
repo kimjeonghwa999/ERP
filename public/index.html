@@ -3,268 +3,310 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>사내 모바일 ERP 시스템</title>
-    <link rel="stylesheet" href="/main.css">
+    <title>사내 ERP 시스템 - 통합 대시보드</title>
+    <!-- 고성능 데이터 시각화를 위한 Chart.js 엔진 로드 -->
+    <script src="https://jsdelivr.net"></script>
     <style>
-        /* ERP 메인 베이스 메뉴 레이아웃 스타일 */
-        body {
-            background-color: #f8fafc;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        /* 상단 네비게이션 바 */
-        .erp-header {
-            background: #ffffff;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-        }
-
-        .header-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1e293b;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* 햄버거 메뉴 버튼 */
-        .menu-toggle {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 5px;
-            color: #475569;
-            width: auto; /* 기존 버튼 스타일 상쇄 */
+        * {
+            box-sizing: border-box;
             margin: 0;
+            padding: 0;
+            font-family: 'Malgun Gothic', 'Noto Sans KR', sans-serif;
         }
 
-        /* 사이드바 메뉴 (보내주신 ERP 메뉴 리스트 탑재) */
+        body {
+            display: flex;
+            height: 100vh;
+            background-color: #f0f4f8;
+            overflow: hidden;
+        }
+
+        /* 1. 왼쪽: 시안 스타일 고정 사이드바 */
         .sidebar {
-            position: fixed;
-            top: 60px;
-            left: -260px; /* 기본적으로 숨김 */
-            width: 260px;
-            height: calc(100vh - 60px);
-            background: #ffffff;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
-            transition: left 0.3s ease;
-            z-index: 99;
-            overflow-y: auto;
-            padding: 15px 0;
+            width: 240px;
+            background-color: #34495e; /* 시안 속 차분한 블루/네이비 톤 */
+            color: #ecf0f1;
+            display: flex;
+            flex-direction: column;
+            shrink: 0;
         }
 
-        .sidebar.active {
-            left: 0;
+        .sidebar-header {
+            background-color: #2c3e50;
+            padding: 15px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            border-b: 1px solid #22313f;
+        }
+
+        .user-profile {
+            padding: 20px;
+            background-color: #2e4053;
+            border-bottom: 1px solid #283747;
+            font-size: 13px;
+        }
+        .user-profile .name { font-size: 15px; font-weight: bold; color: #fff; margin-bottom: 3px; }
+        .user-profile .dept { color: #bdc3c7; }
+
+        .menu-list {
+            list-style: none;
+            padding: 10px 0;
+            overflow-y: auto;
+            flex: 1;
         }
 
         .menu-category {
             font-size: 11px;
-            font-weight: bold;
-            color: #94a3b8;
+            color: #7f8c8d;
             padding: 10px 20px 5px 20px;
+            font-weight: bold;
             text-transform: uppercase;
         }
 
         .menu-item {
+            display: block;
+            padding: 12px 20px;
+            color: #adc2d6;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .menu-item:hover {
+            background-color: #2c3e50;
+            color: #fff;
+        }
+        .menu-item.active {
+            background-color: #2980b9; /* 현재 활성화 메뉴 하이라이트 */
+            color: #white;
+            font-weight: bold;
+        }
+
+        /* 2. 오른쪽: 와이드 메인 대시보드 영역 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* 상단 탭 툴바 */
+        .top-navbar {
+            height: 45px;
+            background-color: #5dade2; /* 시안의 시원한 하늘색 상단 탑바 */
             display: flex;
             align-items: center;
-            padding: 12px 20px;
-            color: #475569;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            border-left: 3px solid transparent;
-        }
-
-        .menu-item:hover {
-            background: #f1f5f9;
-            color: #ff416c;
-        }
-
-        /* 현재 활성화된 메뉴 (근태관리 강조) */
-        .menu-item.active {
-            background: #fff1f2;
-            color: #ff416c;
+            padding: 0 20px;
+            color: white;
             font-weight: bold;
-            border-left: 3px solid #ff416c;
+            font-size: 14px;
+            justify-content: space-between;
         }
 
-        /* 콘텐츠 중앙 정렬 및 여백 확보 */
-        .main-content {
-            margin-top: 80px;
-            padding: 10px;
+        .dashboard-grid {
+            padding: 20px;
             display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 시안 스타일 격자형 대시보드 열 정의 */
+        .row {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+        }
+
+        /* 하얀색 통계 배치용 카드 */
+        .card {
+            background: #ffffff;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            padding: 18px;
+            border: 1px solid #e6ebf0;
+        }
+        .card-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            padding-left: 8px;
+        }
+
+        /* 첫 번째 열: 날짜/시간 컴포넌트 & 원형 인덱스 단추 */
+        .date-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
             justify-content: center;
         }
+        .date-text { font-size: 26px; font-weight: 800; color: #7f8c8d; }
+        .clock-text { font-size: 18px; font-weight: bold; color: #34495e; margin-top: 5px; }
 
-        /* 기존 컨테이너 재활용 및 튜닝 */
-        .container {
-            margin-top: 0;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+        .circle-badge-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .circle-badge {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        .profile-section {
-            background: #fff1f2;
-            border: 1px solid #ffe4e6;
-        }
-        .profile-badge {
-            background: #ffe4e6;
-            color: #b91c1c;
-        }
-        .digital-clock {
-            color: #ff416c;
+        /* 시안 컬러 원형 지표 동기화 */
+        .bg-sales { background-color: #2ecc71; }
+        .bg-produce { background-color: #e74c3c; }
+        .bg-funds { background-color: #3498db; }
+        .bg-profit { background-color: #f1c40f; }
+
+        /* 두 번째 열: 실시간 근태 위젯 및 그래픽 차트 */
+        .chart-box {
+            height: 240px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        /* 배경 어두워지는 효과 */
-        .overlay {
-            position: fixed;
-            top: 60px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.3);
+        /* 실시간 근태 스위치 조작 버튼 */
+        .btn-attendance {
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+            transition: background 0.2s;
+            margin-right: 10px;
+        }
+        .btn-in { background-color: #2ecc71; }
+        .btn-in:hover { background-color: #27ae60; }
+        .btn-out { background-color: #e74c3c; }
+        .btn-out:hover { background-color: #c0392b; }
+
+        #log {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #2c3e50;
+            border-left: 3px solid #bdc3c7;
             display: none;
-            z-index: 98;
         }
-        .overlay.active {
-            display: block;
+
+        /* 세 번째 열: 하단 수치 요약 KPI */
+        .kpi-container {
+            display: grid;
+            grid-template-cols: repeat(5, 1fr);
+            gap: 15px;
+            width: 100%;
         }
+        .kpi-item {
+            border-left: 2px solid #3498db;
+            padding-left: 12px;
+        }
+        .kpi-num { font-size: 22px; font-weight: bold; color: #2c3e50; }
+        .kpi-label { font-size: 12px; color: #7f8c8d; margin-top: 4px; }
+        .kpi-red { border-left-color: #e74c3c; }
+        .kpi-red .kpi-num { color: #e74c3c; }
+
+        .logout-btn {
+            background: none;
+            border: 1px solid #7f8c8d;
+            color: #bdc3c7;
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: auto;
+        }
+        .logout-btn:hover { background-color: rgba(255,255,255,0.1); color: white; }
     </style>
 </head>
 <body>
 
-<!-- 상단 바 -->
-<header class="erp-header">
-    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
-    <div class="header-title">📊 사내 ERP 시스템</div>
-    <div style="width: 34px;"></div> <!-- 우측 밸런스용 여백 -->
-</header>
-
-<!-- 어두운 배경 막 -->
-<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
-
-<!-- 사이드바 내비게이션 (보내주신 메뉴 전체 반영) -->
-<nav class="sidebar" id="sidebar">
-    <div class="menu-category">주요 관리 시스템</div>
-    <a href="#" class="menu-item">인사관리</a>
-    <a href="#" class="menu-item">급여관리</a>
-    <a href="#" class="menu-item">회계관리</a>
-    
-    <div class="menu-category">영업 및 물류</div>
-    <a href="#" class="menu-item">영업관리</a>
-    <a href="#" class="menu-item">수출관리</a>
-    <a href="#" class="menu-item">물류관리</a>
-    <a href="#" class="menu-item">수입관리</a>
-
-    <div class="menu-category">생산 및 자재</div>
-    <a href="#" class="menu-item">생산관리</a>
-    <a href="#" class="menu-item">외주관리</a>
-    <a href="#" class="menu-item">구매관리</a>
-    <a href="#" class="menu-item">원가관리</a>
-
-    <div class="menu-category">경영전략 및 연동</div>
-    <a href="#" class="menu-item">프로젝트관리</a>
-    <a href="#" class="menu-item">AI 경영분석</a>
-    <a href="#" class="menu-item active">근태관리</a> <!-- 현재 작동중인 곳 -->
-</nav>
-
-<!-- 메인 컨텐츠 영역 -->
-<main class="main-content">
-    <div class="container">
-        <h1 style="font-size: 20px; color: #1e293b; font-weight: 700; margin-bottom: 10px;">근태 관리 시스템</h1>
-
-        <div class="profile-section">
-            <span class="profile-badge" id="userTeam">소속 정보 없음</span>
-            <div class="profile-name"><span id="userName">사용자</span> 사원님</div>
-            <div class="profile-id">사번: <span id="userId">-</span></div>
-        </div>
-
-        <div class="digital-clock" id="currentTime">00:00:00</div>
-
-        <div style="margin-bottom: 10px;">
-            <button class="in" onclick="recordAttendance('출근')">출근하기</button>
-            <button class="out" onclick="recordAttendance('퇴근')">퇴근하기</button>
-        </div>
-
-        <div id="log"></div>
-
-        <div class="logout-wrap">
-            <a onclick="logout()">로그아웃 계정 전환</a>
-        </div>
-    </div>
-</main>
-
-<script>
-    // 사이드바 토글 기능
-    function toggleMenu() {
-        document.getElementById('sidebar').classList.toggle('active');
-        document.getElementById('overlay').classList.toggle('active');
-    }
-
-    // 세션 데이터 바인딩
-    const empId = localStorage.getItem('employeeId');
-    const empName = localStorage.getItem('employeeName');
-    const empTeam = localStorage.getItem('employeeTeam');
-
-    if (!empId) {
-        alert('로그인 세션이 만료되었습니다.');
-        window.location.href = '/';
-    } else {
-        document.getElementById('userId').innerText = empId;
-        document.getElementById('userName').innerText = empName;
-        document.getElementById('userTeam').innerText = empTeam || '일반 사원';
-    }
-
-    // 시계 동작
-    function updateClock() {
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        document.getElementById('currentTime').innerText = `${hours}:${minutes}:${seconds}`;
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-
-    // 출퇴근 처리
-    function recordAttendance(type) {
-        const logDiv = document.getElementById('log');
-        const now = new Date();
-        const timeString = now.toLocaleTimeString('ko-KR', { hour12: false });
+    <!-- 1. 좌측 상시 고정 ERP 메뉴 사이드바 -->
+    <aside class="sidebar">
+        <div class="sidebar-header">⚙️ 운영관리 시스템</div>
         
-        logDiv.style.display = 'block';
-        if (type === '출근') {
-            logDiv.style.backgroundColor = '#ecfdf5';
-            logDiv.style.color = '#065f46';
-            logDiv.style.border = '1px solid #10b981';
-            logDiv.innerText = `[${timeString}] 출근 처리가 완료되었습니다.`;
-        } else {
-            logDiv.style.backgroundColor = '#fef2f2';
-            logDiv.style.color = '#991b1b';
-            logDiv.style.border = '1px solid #ef4444';
-            logDiv.innerText = `[${timeString}] 퇴근 처리가 완료되었습니다.`;
-        }
-    }
+        <div class="user-profile">
+            <div class="name"><span id="userName">사용자</span> 사원님</div>
+            <div class="dept">소속: <span id="userTeam">개발팀</span> (사번: <span id="userId">-</span>)</div>
+        </div>
 
-    function logout() {
-        localStorage.clear();
-        alert('로그아웃 되었습니다.');
-        window.location.href = '/';
-    }
-</script>
+        <ul class="menu-list">
+            <div class="menu-category">시스템 메뉴</div>
+            <li><a href="#" class="menu-item active">📊 메인 대시보드</a></li>
+            <li><a href="#" class="menu-item">👤 사원정보관리</a></li>
+            <li><a href="#" class="menu-item">⏱️ 근태/출퇴근관리</a></li>
+            <li><a href="#" class="menu-item">💰 급여정산관리</a></li>
+            <li><a href="#" class="menu-item">📉 회계/원가관리</a></li>
+            <li><a href="#" class="menu-item">📦 물류/자재관리</a></li>
+            <li><a href="#" class="menu-item">🤖 AI 경영분석컨설팅</a></li>
+        </ul>
 
-</body>
-</html>
+        <div style="padding: 15px; text-align: center;">
+            <button onclick="logout()" class="logout-btn">시스템 로그아웃</button>
+        </div>
+    </aside>
+
+    <!-- 2. 우측 통합 전산 모니터링 영역 -->
+    <main class="main-content">
+        <div class="top-navbar">
+            <div>Home > 통합 대시보드</div>
+            <div>사내 종합 ERP v1.0</div>
+        </div>
+
+        <div class="dashboard-grid">
+            
+            <!-- [열 1] 시안 상단: 실시간 날짜 시계 및 컬러 서클 인덱스 알림 -->
+            <div class="row">
+                <div class="card date-box" style="flex: 1.2;">
+                    <div class="date-text" id="currentDate">2026-07-21</div>
+                    <div class="clock-text" id="currentTime">00:00:00 AM</div>
+                </div>
+                <div class="card" style="flex: 2; display: flex; justify-content: flex-end;">
+                    <div class="circle-badge-container">
+                        <div class="circle-badge bg-sales">영업</div>
+                        <div class="circle-badge bg-produce">생산</div>
+                        <div class="circle-badge bg-funds">자금</div>
+                        <div class="circle-badge bg-profit">손익</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- [열 2] 시안 중단: 근태 통제 컨트롤러 & 부서 인원 비율 & 주간 현황 막대 그래프 -->
+            <div class="row">
+                <!-- 실시간 근태 입력 카드 -->
+                <div class="card" style="flex: 1;">
+                    <div class="card-title">실시간 근태 체크 시스템</div>
+                    <p style="font-size: 13px; color: #7f8c8d; margin-bottom: 20px; line-height: 1.4;">사원번호인증 세션이 활성화되었습니다. 출퇴근 상태를 기록해 주세요.</p>
+                    <div>
+                        <button class="btn-attendance btn-in" onclick="recordAttendance('출근')">출근 등록</button>
+                        <button class="btn-attendance btn-out" onclick="recordAttendance('퇴근')">퇴근 등록</button>
+                    </div>
+                    <div id="log"></div>
+                </div>
+
+                <!-- 부서별 파이 차트 -->
+                <div class="card" style="flex: 1;">
+                    <div class="card-title">부서별 인원 배정 비율</div>
+                    <div class="chart-box">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 생산/근태 지표 막대 차트 -->
+                <div class="card" style="flex: 1.3;">
+
+                    주간 종합 업무 달성률 (%)종합 전산 실시간 주요 지표 (KPI)133총근무 인원75정상 출근 건수20출장/외근 현황15휴가/연차 일수23지각/조퇴 건수// 1. 인증 데이터 매핑const empId = localStorage.getItem('employeeId');const empName = localStorage.getItem('employeeName');const empTeam = localStorage.getItem('employeeTeam');if (!empId) {alert('로그인 세션이 만료되었습니다. 다시 로그인해 주세요.');window.location.href = '/';} else {document.getElementById('userId').innerText = empId;document.getElementById('userName').innerText = empName;document.getElementById('userTeam').innerText = empTeam || '일반사원';}// 2. 실시간 시안 스타일 시계 및 날짜 구동function updateClock() {const now = new Date();// 날짜 세팅const yyyy = now.getFullYear();const mm = String(now.getMonth() + 1).padStart(2, '0');const dd = String(now.getDate()).padStart(2, '0');document.getElementById('currentDate').innerText = ${yyyy}-${mm}-${dd};// 시간 세팅document.getElementById('currentTime').innerText = now.toLocaleTimeString('en-US', { hour12: true });}setInterval(updateClock, 1000);updateClock();// 3. 차트 엔진 활성화 (시안 그래픽 완벽 동기화)// (1) 원형 파이 차트new Chart(document.getElementById('pieChart').getContext('2d'), {type: 'pie',data: {labels: ['인사팀', '개발팀', '영업팀', '기획팀'],datasets: [{data:,backgroundColor: ['#f1c40f', '#2ecc71', '#3498db', '#e74c3c']}]},options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } } } }});// (2) 주간 막대 그래프new Chart(document.getElementById('barChart').getContext('2d'), {type: 'bar',data: {labels: ['월요일', '화요일', '수요일', '목요일', '금요일'],datasets: [{label: '달성률',data:,backgroundColor: '#2ecc71',borderRadius: 3}]},options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }});// 4. 출퇴근 조작 이벤트 핸들러function recordAttendance(type) {const logDiv = document.getElementById('log');const now = new Date();const timeStr = now.toLocaleTimeString('ko-KR', { hour12: false });logDiv.style.display = 'block';if(type === '출근') {logDiv.style.borderLeftColor = '#2ecc71';logDiv.innerText = [${timeStr}] 출근 승인 처리 완료 (정상 반영);} else {logDiv.style.borderLeftColor = '#e74c3c';logDiv.innerText = [${timeStr}] 퇴근 기록 완료 (정산 대기);}}// 5. 세션 클리어 로그아웃function logout() {localStorage.clear();alert('ERP 세션을 안전하게 종료합니다.');window.location.href = '/';}
