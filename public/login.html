@@ -4,48 +4,260 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>사내 모바일 ERP 근태관리 시스템 - 로그인</title>
-    <!-- 기존 main.css 스타일시트를 똑같이 연동합니다 -->
-    <link rel="stylesheet" href="main.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        /* 전체 레이아웃 컨테이너 (참고 이미지처럼 가로로 긴 형태) */
+        .wrapper {
+            display: flex;
+            width: 100%;
+            max-width: 1000px;
+            height: 600px;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            margin: 20px;
+        }
+
+        /* 왼쪽: 일러스트 및 슬로건 영역 */
+        .left-banner {
+            flex: 1.1;
+            background: linear-gradient(135deg, #ff416c, #ff4b2b); /* 이미지 느낌의 강렬한 핑크/레드 그라디언트 */
+            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            color: #ffffff;
+        }
+
+        .left-banner .top-logo {
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .left-banner .mid-text h2 {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 15px;
+            word-break: keep-all;
+        }
+
+        .left-banner .mid-text p {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        /* 배경 데코레이션 건물 모양 그래픽 대용 패턴 */
+        .left-banner::after {
+            content: "🏢\A🏢🏢\A🏢🏢🏢";
+            white-space: pre;
+            position: absolute;
+            bottom: -20px;
+            right: 20px;
+            font-size: 110px;
+            opacity: 0.15;
+            line-height: 1.1;
+        }
+
+        /* 오른쪽: 로그인 폼 영역 */
+        .right-form {
+            flex: 1;
+            padding: 50px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: #ffffff;
+        }
+
+        .form-header {
+            margin-bottom: 35px;
+            text-align: left;
+        }
+
+        .form-header h3 {
+            font-size: 26px;
+            color: #1e293b;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .form-header p {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            color: #475569;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        .input-wrapper input:focus {
+            border-color: #ff416c;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(255, 65, 108, 0.15);
+        }
+
+        .options-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .options-group label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .options-group input[type="checkbox"] {
+            margin-right: 6px;
+            cursor: pointer;
+            accent-color: #ff416c;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(to right, #ff416c, #ff4b2b);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            box-shadow: 0 4px 12px rgba(255, 65, 108, 0.2);
+        }
+
+        .login-btn:hover {
+            opacity: 0.9;
+        }
+
+        .copyright {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* 📱 모바일 환경 최적화 반응형 미디어 쿼리 */
+        @media (max-width: 768px) {
+            .wrapper {
+                flex-direction: column;
+                height: auto;
+                max-width: 420px;
+            }
+            .left-banner {
+                padding: 40px 30px;
+                height: 200px;
+            }
+            .left-banner .mid-text h2 {
+                font-size: 22px;
+            }
+            .left-banner .mid-text p {
+                font-size: 13px;
+            }
+            .left-banner::after {
+                font-size: 60px;
+            }
+            .right-form {
+                padding: 40px 30px;
+            }
+        }
+    </style>
 </head>
 <body>
 
-<!-- 기존 .container 스타일과 추가한 .login-box 스타일을 동시 적용 -->
-<div class="container login-box">
-    <!-- 로고 영역 -->
-    <div class="logo-area">
-        <div class="icon">💼</div>
-        <h1>모바일 ERP 시스템</h1>
-        <p>ERP Attendance System</p>
+<div class="wrapper">
+    <!-- 왼쪽: 슬로건 앤 데코 배너 영역 -->
+    <div class="left-banner">
+        <div class="top-logo">📊 ERP SYSTEM</div>
+        <div class="mid-text">
+            <h2>Everything you need to manage attendance properties.</h2>
+            <p>스마트한 근태관리의 시작, 모바일 ERP 시스템</p>
+        </div>
+        <div class="copyright">© 2026 ERP. All rights reserved.</div>
     </div>
 
-    <!-- 로그인 폼 -->
-    <form id="loginForm">
-        <div class="input-group">
-            <label for="employeeId">사원 번호 (ID)</label>
-            <input type="text" id="employeeId" name="employeeId" placeholder="사원번호를 입력하세요" required autocomplete="username">
+    <!-- 오른쪽: 로그인 세션 폼 입력 영역 -->
+    <div class="right-form">
+        <div class="form-header">
+            <h3>Welcome back</h3>
+            <p>인증 정보를 입력한 뒤 시스템에 로그인하세요.</p>
         </div>
 
-        <div class="input-group">
-            <label for="password">비밀번호</label>
-            <input type="password" id="password" name="password" placeholder="비밀번호를 입력하세요" required autocomplete="current-password">
-        </div>
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="employeeId">Username (사원번호)</label>
+                <div class="input-wrapper">
+                    <input type="text" id="employeeId" placeholder="사원번호를 입력하세요" required autocomplete="username">
+                </div>
+            </div>
 
-        <!-- 추가 옵션 (아이디 저장 등) -->
-        <div class="options-group">
-            <label>
-                <input type="checkbox" id="rememberMe" name="rememberMe"> 사원번호 저장
-            </label>
-        </div>
+            <div class="input-group">
+                <label for="password">Password (비밀번호)</label>
+                <div class="input-wrapper">
+                    <input type="password" id="password" placeholder="비밀번호를 입력하세요" required autocomplete="current-password">
+                </div>
+            </div>
 
-        <!-- 로그인 버튼 -->
-        <button type="submit" class="login-btn">로그인</button>
-    </form>
+            <div class="options-group">
+                <label><input type="checkbox" name="rememberMe"> 사원번호 저장</label>
+            </div>
 
-    <div class="footer-text">
-        © 2026 ERP Attendance System. All rights reserved.
+            <button type="submit" class="login-btn">Login</button>
+        </form>
     </div>
 </div>
+
 <script>
+    // 기존에 붙여놓았던 백엔드 연동 Ajax 코드는 그대로 완벽 유지합니다.
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
         e.preventDefault(); 
         
@@ -64,12 +276,10 @@
             if (response.ok && data.success) {
                 alert(`${data.employee.name}님, 환영합니다!`);
                 
-                // 로그인한 사원의 정보를 브라우저에 임시 저장 (메인 화면 연동용)
                 localStorage.setItem('employeeId', data.employee.employeeId);
                 localStorage.setItem('employeeName', data.employee.name);
                 localStorage.setItem('employeeTeam', data.employee.team);
 
-                // 메인 출퇴근 화면으로 이동
                 window.location.href = '/index.html'; 
             } else {
                 alert(data.message || '로그인 정보가 일치하지 않습니다.');
