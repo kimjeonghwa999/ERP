@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사내 모바일 ERP 근태관리 시스템 - 로그인</title>
+    <!-- 기존 main.css 스타일시트를 똑같이 연동합니다 -->
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+<!-- 기존 .container 스타일과 추가한 .login-box 스타일을 동시 적용 -->
+<div class="container login-box">
+    <!-- 로고 영역 -->
+    <div class="logo-area">
+        <div class="icon">💼</div>
+        <h1>모바일 ERP 시스템</h1>
+        <p>ERP Attendance System</p>
+    </div>
+
+    <!-- 로그인 폼 -->
+    <form id="loginForm">
+        <div class="input-group">
+            <label for="employeeId">사원 번호 (ID)</label>
+            <input type="text" id="employeeId" name="employeeId" placeholder="사원번호를 입력하세요" required autocomplete="username">
+        </div>
+
+        <div class="input-group">
+            <label for="password">비밀번호</label>
+            <input type="password" id="password" name="password" placeholder="비밀번호를 입력하세요" required autocomplete="current-password">
+        </div>
+
+        <!-- 추가 옵션 (아이디 저장 등) -->
+        <div class="options-group">
+            <label>
+                <input type="checkbox" id="rememberMe" name="rememberMe"> 사원번호 저장
+            </label>
+        </div>
+
+        <!-- 로그인 버튼 -->
+        <button type="submit" class="login-btn">로그인</button>
+    </form>
+
+    <div class="footer-text">
+        © 2026 ERP Attendance System. All rights reserved.
+    </div>
+</div>
+
+<script>
+    // 로그인 폼 전송 이벤트 처리
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault(); // 기본 새로고침 방지
+        
+        const employeeId = document.getElementById('employeeId').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            // 백엔드 server.js 로그인 API 호출
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ employeeId, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('로그인에 성공했습니다!');
+                // 로그인 성공 시 메인 출퇴근 화면(index.html)으로 이동
+                window.location.href = '/index.html'; 
+            } else {
+                alert(data.message || '로그인 정보가 일치하지 않습니다.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('서버 통신 중 오류가 발생했습니다.');
+        }
+    });
+</script>
+
+</body>
+</html>
