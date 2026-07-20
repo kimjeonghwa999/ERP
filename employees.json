@@ -1,9 +1,16 @@
 {
   "ADMIN-01": {
     "name": "인사팀장",
-    "password": "$2b$10$AvvmNeFdYSDErjVkXC3if.6IXN/RAoUgkehj0lHE7H0nEmFwJL1g.",
+    "password": "$2b$10$AvvmNeFdYSDERjvKXC3if.6IXN/RAoUgkehjølHE7H0nEmFwJl1g.",
     "team": "인사팀",
     "position": "팀장",
     "role": "admin"
+  },
+  "USER-01": {
+    "name": "홍길동",
+    "password": "$2a$10$7R8YgA0F8F1vK6f1BwK1e.2I7lT5Y9F7z3UuO8xQ5Zg1u1v1u1u1u",
+    "team": "개발팀",
+    "position": "사원",
+    "role": "user"
   }
 }

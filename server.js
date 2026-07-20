@@ -1,136 +1,73 @@
 const express = require('express');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 const bcrypt = require('bcryptjs');
+
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// [필수] 모든 라우터보다 상단에 위치해야 하는 미들웨어 및 정적 폴더 설정
-app.use(express.json());
+// 1. 미들웨어 설정 (정적 파일 제공 및 JSON 데이터 파싱)
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/admin', express.static(path.join(__dirname, 'admin')));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-const ATTENDANCE_FILE = path.join(__dirname, 'attendance.json');
-const CONFIG_FILE = path.join(__dirname, 'company_config.json');
-const EMPLOYEE_FILE = path.join(__dirname, 'employees.json');
+const employeesPath = path.join(__dirname, 'employees.json');
 
-let companyConfig = {
-    prefix: "ABC-", nextSequence: 1,
-    teams: ["인사팀", "개발팀", "영업팀"], 
-    positions: ["사원", "대리", "과장", "팀장", "부장", "대표이사"],
-    companyAddress: "서울특별시 마포구 마포대로 1", latitude: 37.5385, longitude: 126.9458,
-    limitDistance: 999999 
-};
-if (fs.existsSync(CONFIG_FILE)) companyConfig = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+// 2. 기본 라우터 (루트 접속 시 로그인 화면으로 이동)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
 
-function saveConfig() { fs.writeFileSync(CONFIG_FILE, JSON.stringify(companyConfig, null, 2), 'utf8'); }
+// 3. 로그인 API 라우터
+app.post('/api/login', async (req, res) => {
+    const { employeeId, password } = req.body;
 
-function calculateVacation(joinDateStr) {
-    const joinDate = new Date(joinDateStr);
-    const today = new Date();
-    const diffMonths = (today.getFullYear() - joinDate.getFullYear()) * 12 + (today.getMonth() - joinDate.getMonth());
-    return diffMonths < 12 ? (diffMonths > 0 ? diffMonths : 0) : 15;
-}
-
-function loadEmployeeDB() {
-    if (!fs.existsSync(EMPLOYEE_FILE)) {
-        const hashedPassword = bcrypt.hashSync("admin5678!", 10);
-        const initialDB = { 
-            "ADMIN-01": { name: "인사팀장", password: hashedPassword, team: "인사팀", position: "팀장", role: "admin", joinDate: "2024-01-01", vacationUsed: 0 } 
-        };
-        fs.writeFileSync(EMPLOYEE_FILE, JSON.stringify(initialDB, null, 2), 'utf8');
-        return initialDB;
+    // 필수 입력값 체크
+    if (!employeeId || !password) {
+        return res.status(400).json({ success: false, message: '사원번호와 비밀번호를 모두 입력해주세요.' });
     }
-    return JSON.parse(fs.readFileSync(EMPLOYEE_FILE, 'utf8') || '{}');
-}
-function saveEmployeeDB(db) { fs.writeFileSync(EMPLOYEE_FILE, JSON.stringify(db, null, 2), 'utf8'); }
-function loadAttendance() { return fs.existsSync(ATTENDANCE_FILE) ? JSON.parse(fs.readFileSync(ATTENDANCE_FILE, 'utf8') || '[]') : []; }
-function saveAttendance(data) { fs.writeFileSync(ATTENDANCE_FILE, JSON.stringify(data, null, 2), 'utf8'); }
 
-function getDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; 
-    const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))); 
-}
+    try {
+        // employees.json 파일 읽기
+        if (!fs.existsSync(employeesPath)) {
+            return res.status(500).json({ success: false, message: '사원 데이터베이스 파일이 없습니다.' });
+        }
+        
+        const fileData = fs.readFileSync(employeesPath, 'utf8');
+        const employees = JSON.parse(fileData);
 
-// [페이지 라우터]
-app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
-app.get('/admin', (req, res) => { res.sendFile(path.join(__dirname, 'admin', 'index.html')); });
+        // 객체 키(USER-01 등)로 사원 정보 찾기
+        const employee = employees[employeeId];
+        if (!employee) {
+            return res.status(401).json({ success: false, message: '존재하지 않는 사원번호입니다.' });
+        }
 
-// [인사 관리 API]
-app.post('/api/hr/config', (req, res) => {
-    const db = loadEmployeeDB(); const { requesterId, password } = req.body;
-    if (!db[requesterId] || !bcrypt.compareSync(password, db[requesterId].password) || db[requesterId].role !== 'admin') return res.status(403).json({ message: '인증 실패' });
-    res.json(companyConfig);
-});
+        // bcryptjs를 이용해 암호화된 비밀번호 대조
+        const isMatch = await bcrypt.compare(password, employee.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
+        }
 
-app.post('/api/hr/config/update', (req, res) => {
-    const db = loadEmployeeDB(); const { requesterId, password, companyAddress, latitude, longitude, limitDistance } = req.body;
-    if (!db[requesterId] || !bcrypt.compareSync(password, db[requesterId].password) || db[requesterId].role !== 'admin') return res.status(403).json({ message: '권한 없음' });
-    if (companyAddress) companyConfig.companyAddress = companyAddress.trim(); 
-    if (latitude) companyConfig.latitude = parseFloat(latitude); 
-    if (longitude) companyConfig.longitude = parseFloat(longitude);
-    if (limitDistance) companyConfig.limitDistance = parseInt(limitDistance);
-    saveConfig(); res.json({ message: '성공', config: companyConfig });
-});
+        // 로그인 성공 응답
+        return res.status(200).json({
+            success: true,
+            message: '로그인 성공',
+            employee: {
+                employeeId: employeeId,
+                name: employee.name,
+                team: employee.team,
+                position: employee.position,
+                role: employee.role
+            }
+        });
 
-app.post('/api/hr/register', (req, res) => {
-    const { requesterId, password, name, newEmpPassword, team, position, joinDate } = req.body;
-    let db = loadEmployeeDB();
-    if (!db[requesterId] || !bcrypt.compareSync(password, db[requesterId].password) || db[requesterId].role !== 'admin') return res.status(403).json({ message: '권한 없음' });
-    
-    const seqStr = String(companyConfig.nextSequence).padStart(3, '0');
-    const autoGeneratedId = `${companyConfig.prefix}${seqStr}`;
-    let userRole = 'user'; if (position === '대표이사') userRole = 'ceo'; else if (position === '팀장' || position === '부장') userRole = 'manager';
-    
-    db[autoGeneratedId] = { 
-        name, 
-        password: bcrypt.hashSync(newEmpPassword, 10), 
-        team, 
-        position, 
-        role: userRole,
-        joinDate: joinDate || new Date().toISOString().split('T')[0],
-        vacationUsed: 0 
-    };
-    saveEmployeeDB(db); companyConfig.nextSequence += 1; saveConfig();
-    res.status(200).json({ message: '등록 성공', generatedId: autoGeneratedId });
-});
-
-app.post('/api/hr/employees', (req, res) => {
-    const db = loadEmployeeDB(); const { requesterId, password } = req.body;
-    if (!db[requesterId] || !bcrypt.compareSync(password, db[requesterId].password) || db[requesterId].role !== 'admin') return res.status(403).json({ message: '권한 없음' });
-    
-    const employeeList = Object.keys(db).map(id => {
-        const total = calculateVacation(db[id].joinDate);
-        return { id, name: db[id].name, team: db[id].team, position: db[id].position, joinDate: db[id].joinDate, vacation: { total, used: db[id].vacationUsed || 0, left: total - (db[id].vacationUsed || 0) } };
-    });
-    res.json({ employees: employeeList });
-});
-
-// [근태 관리 API]
-app.post('/api/attendance/check-in', (req, res) => {
-    const { employeeId, password, lat, lon } = req.body; const db = loadEmployeeDB();
-    if (!db[employeeId] || !bcrypt.compareSync(password, db[employeeId].password)) return res.status(401).json({ message: '사번 또는 비밀번호 오류' });
-    if (lat && lon) {
-        const currentDistance = getDistance(companyConfig.latitude, companyConfig.longitude, lat, lon);
-        if (currentDistance > companyConfig.limitDistance) return res.status(400).json({ message: '회사 근처에서만 출근이 가능합니다.' });
+    } catch (error) {
+        console.error('로그인 처리 중 에러:', error);
+        return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
     }
-    const empInfo = db[employeeId]; const now = new Date(); const today = now.toLocaleDateString('ko-KR'); let attendanceLog = loadAttendance();
-    const alreadyIn = attendanceLog.find(log => log.employeeId === employeeId && log.date === today);
-    if (alreadyIn) return res.status(200).json({ message: '이미 출근 완료된 상태입니다.', data: alreadyIn });
-    const log = { employeeId, name: empInfo.name, team: empInfo.team, position: empInfo.position, date: today, checkInTime: now.toLocaleTimeString('ko-KR'), checkOutTime: null };
-    attendanceLog.push(log); saveAttendance(attendanceLog); res.status(200).json({ data: log });
 });
 
-app.post('/api/attendance/check-out', (req, res) => {
-    const { employeeId, password } = req.body; const db = loadEmployeeDB();
-    if (!db[employeeId] || !bcrypt.compareSync(password, db[employeeId].password)) return res.status(401).json({ message: '인증 실패' });
-    const now = new Date(); const today = now.toLocaleDateString('ko-KR'); let attendanceLog = loadAttendance();
-    const userLog = attendanceLog.find(log => log.employeeId === employeeId && log.date === today);
-    if (!userLog) return res.status(400).json({ message: '오늘 출근한 기록이 존재하지 않습니다.' });
-    if (userLog.checkOutTime) return res.status(200).json({ message: '이미 퇴근 처리되었습니다.', data: userLog });
-    userLog.checkOutTime = now.toLocaleTimeString('ko-KR'); saveAttendance(attendanceLog); res.status(200).json({ message: '퇴근 성공', data: userLog });
+// 4. 서버 시작
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
-
-app.listen(PORT, () => { console.log(`서버가 포트 ${PORT}에서 정상 작동 중입니다.`); })
