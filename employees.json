@@ -7,7 +7,7 @@
     "role": "admin"
   },
   "USER-01": {
-    "name": "홍길동",
+    "name": "김정화",
     "password": "$2a$10$f38f/Y4Y4eD66GqKWhcWreF7vYp1IuFpM5O9I6Z0QZg1u1v1u1u1u",
     "team": "개발팀",
     "position": "사원",
