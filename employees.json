@@ -8,7 +8,7 @@
   },
   "USER-01": {
     "name": "홍길동",
-    "password": "$2a$10$7R8YgA0F8F1vK6f1BwK1e.2I7lT5Y9F7z3UuO8xQ5Zg1u1v1u1u1u",
+    "password": "$2a$10$f38f/Y4Y4eD66GqKWhcWreF7vYp1IuFpM5O9I6Z0QZg1u1v1u1u1u",
     "team": "개발팀",
     "position": "사원",
     "role": "user"
